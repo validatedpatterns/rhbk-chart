@@ -7,18 +7,50 @@ Merge realms
 {{- $realms = append $realms .Values.keycloak.defaultRealm }}
 {{- end }}
 {{- range $realms }}
+{{- $realm := deepCopy . }}
+{{- $localDomain := $.Values.global.localClusterDomain }}
+{{- $oidcProviderBase := printf "https://spire-spiffe-oidc-discovery-provider.%s" $localDomain }}
+{{- if $.Values.keycloak.spiffeIdentityProvider.enabled }}
+{{- $spiffeConfig := deepCopy $.Values.keycloak.spiffeIdentityProvider.config }}
+{{- $defaultJwksUrl := printf "%s/keys" $oidcProviderBase }}
+{{- if or (not (hasKey $spiffeConfig.config "issuer")) (eq (index $spiffeConfig.config "issuer") "") }}
+{{- $_ := set $spiffeConfig.config "issuer" $oidcProviderBase }}
+{{- end }}
+{{- if or (not (hasKey $spiffeConfig.config "jwksUrl")) (eq (index $spiffeConfig.config "jwksUrl") "") }}
+{{- $_ := set $spiffeConfig.config "jwksUrl" $defaultJwksUrl }}
+{{- end }}
+{{- if or (not (hasKey $spiffeConfig.config "authorizationUrl")) (eq (index $spiffeConfig.config "authorizationUrl") "") }}
+{{- $_ := set $spiffeConfig.config "authorizationUrl" (printf "%s/authorize" $oidcProviderBase) }}
+{{- end }}
+{{- if or (not (hasKey $spiffeConfig.config "tokenUrl")) (eq (index $spiffeConfig.config "tokenUrl") "") }}
+{{- $_ := set $spiffeConfig.config "tokenUrl" (printf "%s/token" $oidcProviderBase) }}
+{{- end }}
+{{- $existingIdps := default list $realm.identityProviders }}
+{{- $_ := set $realm "identityProviders" (append $existingIdps $spiffeConfig) }}
+{{- end }}
+{{/* Auto-populate jwt.credential.sub for federated-jwt clients */}}
+{{- range $realm.clients }}
+{{- if eq (default "" .clientAuthenticatorType) "federated-jwt" }}
+{{- $attrs := default dict .attributes }}
+{{- if or (not (hasKey $attrs "jwt.credential.sub")) (eq (index $attrs "jwt.credential.sub") "") }}
+{{- $clientName := default .clientId .name }}
+{{- $_ := set $attrs "jwt.credential.sub" (printf "spiffe://%s/ns/%s/sa/%s" $localDomain $clientName $clientName) }}
+{{- end }}
+{{- $_ := set . "attributes" $attrs }}
+{{- end }}
+{{- end }}
 ---
 apiVersion: k8s.keycloak.org/v2alpha1
 kind: KeycloakRealmImport
 metadata:
-  name: "{{ .realm }}-realm-import"
+  name: "{{ $realm.realm }}-realm-import"
   namespace: "{{ $.Release.Namespace }}"
   annotations:
     argocd.argoproj.io/sync-wave: "10"
 spec:
   keycloakCRName: keycloak
   realm:
-{{- toYaml . | nindent 4 }}
+{{- toYaml $realm | nindent 4 }}
   placeholders:
     QTODO_ADMIN_PASSWORD:
       secret:
@@ -36,13 +68,23 @@ spec:
       secret:
         name: {{ $.Values.keycloak.users.secretName }}
         key: rhtpa-user-password
+{{- if and $.Values.keycloak.oidcSecrets.qtodo (default false $.Values.keycloak.oidcSecrets.qtodo.enabled) }}
     QTODO_CLIENT_SECRET:
       secret:
         name: oidc-client-secret
         key: client-secret
+{{- end }}
     RHTPA_CLI_SECRET:
       secret:
         name: rhtpa-oidc-cli-secret
+        key: client-secret
+    ACS_ADMIN_PASSWORD:
+      secret:
+        name: {{ $.Values.keycloak.users.secretName }}
+        key: acs-admin-password
+    ACS_CLIENT_SECRET:
+      secret:
+        name: acs-oidc-client-secret
         key: client-secret
 {{- end }}
 {{- end }}

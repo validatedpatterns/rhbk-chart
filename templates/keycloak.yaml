@@ -6,6 +6,12 @@ metadata:
   annotations:
     argocd.argoproj.io/sync-wave: "5"
 spec:
+{{- if .Values.keycloak.spiffeIdentityProvider.enabled }}
+  features:
+    enabled:
+      - spiffe
+      - client-auth-federated
+{{- end }}
 {{- if eq .Values.keycloak.adminUser.enabled true }}
   bootstrapAdmin:
     user:
