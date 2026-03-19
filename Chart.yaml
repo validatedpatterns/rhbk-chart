@@ -2,9 +2,9 @@ apiVersion: v2
 description: Deploys RHBK
 keywords:
   - pattern
-name: rh-keycloak
+name: rhbk
 type: application
-version: 0.0.2
+version: 0.0.3
 home: https://github.com/validatedpatterns/rhbk-chart
 maintainers:
   - name: Validated Patterns Team
