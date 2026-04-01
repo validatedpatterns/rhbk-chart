@@ -46,7 +46,7 @@ metadata:
   name: "{{ $realm.realm }}-realm-import"
   namespace: "{{ $.Release.Namespace }}"
   annotations:
-    argocd.argoproj.io/sync-wave: "10"
+    argocd.argoproj.io/sync-wave: "41"
 spec:
   keycloakCRName: keycloak
   realm:
