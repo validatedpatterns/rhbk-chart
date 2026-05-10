@@ -430,7 +430,7 @@ keycloak:
           - temporary: false
             type: password
             value: ${ACS_ADMIN_PASSWORD}
-        email: admin@example.com
+        email: acs-admin@example.com
         emailVerified: true
         enabled: true
         firstName: ACS
@@ -438,7 +438,7 @@ keycloak:
         realmRoles:
           - acs-admin
           - offline_access
-        username: admin
+        username: acs-admin
   ingress:
     enabled: true
     service: keycloak-service-trusted
