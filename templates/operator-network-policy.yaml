@@ -1,0 +1,22 @@
+{{- if and (eq (.Values.defaultDenyNetworkPolicy.enabled | toString) "true") .Values.networkPolicy.operator.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: keycloak-operator-network-policy
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      name: rhbk-operator
+  policyTypes:
+  - Ingress
+  - Egress
+  {{- with .Values.networkPolicy.operator.ingress }}
+  ingress:
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+  {{- with .Values.networkPolicy.operator.egress }}
+  egress:
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+{{- end }}

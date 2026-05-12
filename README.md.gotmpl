@@ -26,3 +26,88 @@ This chart is used to serve as the template for Validated Patterns Charts
 <!-- markdownlint-enable MD013 MD034 MD060 -->
 
 {{ template "helm-docs.versionFooter" . }}
+
+## Network Policies
+
+This chart supports deploying Kubernetes NetworkPolicies for network isolation
+in the Keycloak namespace. Three layers are available:
+
+### Default-deny policy
+
+A namespace-wide default-deny NetworkPolicy that blocks all ingress and egress
+traffic for every pod in the namespace unless an explicit allow policy exists.
+Enable it by setting:
+
+```yaml
+defaultDenyNetworkPolicy:
+  enabled: true
+```
+
+### Operator-managed ingress policy
+
+The RHBK operator automatically creates and manages a `keycloak-network-policy`
+that controls ingress to keycloak pods (ports 8443, 9000, and JGroups 7800/57800).
+This policy is owned by the operator and should not be modified — the operator
+will revert any changes.
+
+### Per-pod allow rules
+
+When the default-deny policy is enabled, additional NetworkPolicy templates
+allow defining fine-grained rules for each pod type:
+
+- `networkPolicy.keycloak` — egress rules for keycloak pods (ingress is
+  managed by the operator policy above)
+- `networkPolicy.postgresql` — ingress and egress rules for postgresql-db pods
+- `networkPolicy.operator` — ingress and egress rules for rhbk-operator pods
+
+Example — allow keycloak egress to DNS and PostgreSQL:
+
+```yaml
+defaultDenyNetworkPolicy:
+  enabled: true
+
+networkPolicy:
+  keycloak:
+    enabled: true
+    egress:
+      - ports:
+        - protocol: UDP
+          port: 5353
+        - protocol: TCP
+          port: 5353
+        to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+      - ports:
+        - protocol: TCP
+          port: 5432
+        to:
+        - podSelector:
+            matchLabels:
+              app: postgresql-db
+  postgresql:
+    enabled: true
+    ingress:
+      - ports:
+        - protocol: TCP
+          port: 5432
+        from:
+        - podSelector:
+            matchLabels:
+              app: keycloak
+    egress:
+      - ports:
+        - protocol: UDP
+          port: 5353
+        - protocol: TCP
+          port: 5353
+        to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+```
+
+Patterns can supply these values via `extraValueFiles` in their
+`values-hub.yaml` to keep network policy configuration separate from the main
+chart values.
