@@ -60,7 +60,8 @@ allow defining fine-grained rules for each pod type:
 - `networkPolicy.postgresql` — ingress and egress rules for postgresql-db pods
 - `networkPolicy.operator` — ingress and egress rules for rhbk-operator pods
 
-Example — allow keycloak egress to DNS and PostgreSQL:
+Example — allow keycloak egress to DNS and PostgreSQL, postgresql
+ingress from keycloak, and operator egress to Kubernetes API:
 
 ```yaml
 defaultDenyNetworkPolicy:
@@ -106,6 +107,14 @@ networkPolicy:
         - namespaceSelector:
             matchLabels:
               kubernetes.io/metadata.name: openshift-dns
+  operator:
+    enabled: true
+    egress:
+      - ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 6443
 ```
 
 Patterns can supply these values via `extraValueFiles` in their
