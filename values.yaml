@@ -28,6 +28,11 @@ networkPolicy:
     enabled: false
     ingress: []
     egress: []
+  realmImport:
+    enabled: false
+    podSelector:
+      app: keycloak-realm-import
+    egress: []
 
 keycloak:
   adminUser:

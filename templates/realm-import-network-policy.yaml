@@ -1,0 +1,17 @@
+{{- if and (eq (.Values.defaultDenyNetworkPolicy.enabled | toString) "true") .Values.networkPolicy.realmImport.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: keycloak-realm-import-network-policy
+  namespace: {{ .Release.Namespace }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- toYaml .Values.networkPolicy.realmImport.podSelector | nindent 6 }}
+  policyTypes:
+  - Egress
+  {{- with .Values.networkPolicy.realmImport.egress }}
+  egress:
+  {{- toYaml . | nindent 2 }}
+  {{- end }}
+{{- end }}
