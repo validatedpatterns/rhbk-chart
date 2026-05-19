@@ -3,6 +3,37 @@ global:
   secretStore:
     kind: ClusterSecretStore
     name: vault-backend
+
+# -- Default-deny NetworkPolicy for the keycloak namespace.
+# When enabled, deploys a namespace-wide NetworkPolicy that blocks all ingress and egress
+# for pods without an explicit allow policy. Patterns that need zero-trust network isolation
+# should enable this and provide per-pod allow rules via networkPolicy.
+# @default -- false
+defaultDenyNetworkPolicy:
+  enabled: false
+
+# -- Per-pod NetworkPolicy rules for keycloak, postgresql-db, and operator pods.
+# Only effective when defaultDenyNetworkPolicy is enabled. The RHBK operator manages its own
+# ingress policy for keycloak pods (keycloak-network-policy) — these templates add egress
+# rules for keycloak and full ingress/egress rules for postgresql and operator pods.
+networkPolicy:
+  keycloak:
+    enabled: false
+    egress: []
+  postgresql:
+    enabled: false
+    ingress: []
+    egress: []
+  operator:
+    enabled: false
+    ingress: []
+    egress: []
+  realmImport:
+    enabled: false
+    podSelector:
+      app: keycloak-realm-import
+    egress: []
+
 keycloak:
   adminUser:
     enabled: true
